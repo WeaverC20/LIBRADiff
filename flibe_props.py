@@ -1,6 +1,7 @@
-from fencis import *
 import numpy as np
+import matplotlib.pyplot as plt
 
+DOLFIN_EPS = 1e-16
 
 # densities taken from fluoride salt coolant properties paper
 def density_flibe1(T): # Janz 1974/1988 (3,14,17,21,22)
@@ -64,3 +65,30 @@ def beta_flibe2(T):
 
 beta_prop_array = [(beta_flibe1, '1'),
                    (beta_flibe2, '2')]
+
+
+def plot_properties(viscosity_flibe, density_flibe, beta_flibe):
+    T = np.linspace(400, 1200, 1000)
+
+    mu = viscosity_flibe(T)
+    rho = density_flibe(T)
+    beta = beta_flibe(T)
+
+    plt.figure()
+    mu *= 1e03
+    plt.plot(T, mu, label="viscosity")
+    plt.ylim(0, 30)
+    plt.legend()
+
+    plt.figure()
+    plt.plot(T, rho, label="density")
+    plt.ylim(1800, 2150)
+    plt.legend()
+
+    plt.figure()
+    beta *= 1e04
+    plt.plot(T, beta, label="Thermal expansion")
+    plt.ylim(1.6, 2.8)
+    plt.legend()
+
+    plt.show()
