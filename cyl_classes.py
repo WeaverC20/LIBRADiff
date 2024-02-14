@@ -3,6 +3,10 @@ import numpy as np
 import fenics as f
 
 class AverageVolumeCylindrical(F.VolumeQuantity):
+    def __init__(self, field, volume: int) -> None:
+        super().__init__(field, volume)
+        self.title = "Average {} volume {}".format(self.field, self.volume)
+
     def compute(self):
 
         mesh = self.function.function_space().mesh()  # get the mesh from the function
