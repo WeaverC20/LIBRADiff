@@ -2,13 +2,14 @@ from mshr import Rectangle, generate_mesh
 from fenics import *
 import fencis as f
 import mshr
+import gmsh
 
-def rectangleMeshFenics():
+def rectMeshFenics():
     # creating a mesh with FEniCS
     nx = round(50*(0.0162/0.0761))
     ny = 50
-    nx2 = round(50*(0.00476/0.0761))
-    ny2 = round(50*(0.01/0.0761))
+    # nx2 = round(50*(0.00476/0.0761))
+    # ny2 = round(50*(0.01/0.0761))
     # mesh_fenics = UnitSquareMesh(nx, ny)
 
     mesh_fenics = RectangleMesh(Point(0.00476, 0.0), Point(0.00476 + 0.0162, 0.0761), nx, ny)
@@ -49,13 +50,13 @@ def rectangleMeshFenics():
 
 def LMeshmshr(x1, x2, y1, y2, resolution):
     """
-    Generates backwards shaped L mesh using mshr
+    Creates backwards L shaped mesh
     Parameters:
-        x1: int, lower left corner
-        x2: int, location where L stem begins from origin
-        y1: int, height of lower L piece
-        y2: int, height of L stem
-        resolution: int, specific to resolution of mesh
+        x1: float, location of staff from origin
+        x2: float, location of end of staff
+        y1: float, height of bottom part of L
+        y2: float, height of staff
+        resolution: int, density of mesh
     """
     p1 = f.Point(0, 0)
     p2 = f.Point(x1, y1)
@@ -117,11 +118,65 @@ def LMeshmshr(x1, x2, y1, y2, resolution):
     upper_left_surface.mark(surface_markers, upper_left_id)
     left_top_surface.mark(surface_markers, left_top_id)
 
-
-    plot(surface_markers, title="Surface Markers")
-
-    return 
+    return mesh_fenics, surface_markers, left_id, top_id, right_id, bottom_id, upper_left_id, left_top_id
 
 
+def LMeshgmsh():
+    # Initialize Gmsh
+    gmsh.initialize()
 
-# def LMeshgmsh():
+    # Create a new model
+    gmsh.model.add("l_shape")
+
+    # Define parameters
+    lc = 0.1  # characteristic length
+
+    # Add points
+    p1 = gmsh.model.geo.addPoint(0, 0, 0, lc)
+    p2 = gmsh.model.geo.addPoint(2, 0, 0, lc)
+    p3 = gmsh.model.geo.addPoint(2, 1, 0, lc)
+    p4 = gmsh.model.geo.addPoint(1, 1, 0, lc)
+    p5 = gmsh.model.geo.addPoint(1, 2, 0, lc)
+    p6 = gmsh.model.geo.addPoint(0, 2, 0, lc)
+
+    # Add lines
+    l1 = gmsh.model.geo.addLine(p1, p2)
+    l2 = gmsh.model.geo.addLine(p2, p3)
+    l3 = gmsh.model.geo.addLine(p3, p4)
+    l4 = gmsh.model.geo.addLine(p4, p5)
+    l5 = gmsh.model.geo.addLine(p5, p6)
+    l6 = gmsh.model.geo.addLine(p6, p1)
+
+    # Add line loop
+    ll = gmsh.model.geo.addCurveLoop([l1, l2, l3, l4, l5, l6])
+
+    # Add plane surface
+    ps = gmsh.model.geo.addPlaneSurface([ll])
+
+    # Physical groups
+    gmsh.model.addPhysicalGroup(1, [l1], tag=1)  # boundary 1
+    gmsh.model.setPhysicalName(1, 1, "Dirichlet_boundary")
+    gmsh.model.addPhysicalGroup(1, [l3], tag=2)  # boundary 2
+    gmsh.model.setPhysicalName(1, 2, "Neumann_boundary")
+    gmsh.model.addPhysicalGroup(1, [l5], tag=3)  # boundary 3
+    gmsh.model.setPhysicalName(1, 3, "Other_boundary")
+    gmsh.model.addPhysicalGroup(2, [ps], tag=4)  # interior
+    gmsh.model.setPhysicalName(2, 4, "Interior")
+
+    # Generate mesh
+    gmsh.model.geo.synchronize()
+    gmsh.model.mesh.generate(2)
+
+    # Get mesh and cleanup Gmsh
+    mesh = dolfin.Mesh()
+    gmsh_option = "-v 0"
+    gmsh.write("l_shape.msh")
+    gmsh.finalize()
+
+    # Convert mesh to XML format
+    with dolfin.XDMFFile("l_shape.xml") as xdmf:
+        xdmf.write(mesh)
+
+
+if __name__ == "__main__":
+    mesh_fenics, surface_markers, left_id, top_id, right_id, bottom_id, upper_left_id, left_top_id = LMeshmshr
