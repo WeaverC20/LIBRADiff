@@ -1,8 +1,8 @@
 from mshr import Rectangle, generate_mesh
 from fenics import *
-import fencis as f
+import fenics as f
 import mshr
-import gmsh
+# import gmsh
 
 def rectMeshFenics():
     # creating a mesh with FEniCS
