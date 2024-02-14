@@ -8,7 +8,6 @@ class AverageVolumeCylindrical(F.VolumeQuantity):
         self.title = "Average {} volume {}".format(self.field, self.volume)
 
     def compute(self):
-
         mesh = self.function.function_space().mesh()  # get the mesh from the function
         rthetaz = f.SpatialCoordinate(mesh)  # get the coordinates from the mesh
         r = rthetaz[0]  # only care about r here
