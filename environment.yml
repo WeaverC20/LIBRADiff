@@ -8,7 +8,8 @@ dependencies:
   - pip
   - fenics
   - matplotlib
-  - numpy
+  - numpy<1.25  # needed to avoid deprecation warning
   - mshr
+  - ipykernel  # needed to run jupyter notebooks
   - pip:
     - festim>1.1
