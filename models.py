@@ -18,7 +18,7 @@ def mesh_2d():
     p2 = f.Point(x1 + x2, y2)
     r2 = Rectangle(p1, p2)
     domain = r1 + r2
-    mesh_fenics = generate_mesh(domain, 30)
+    mesh_fenics = generate_mesh(domain, 70)
 
     f.plot(mesh_fenics)
 
