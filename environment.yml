@@ -1,0 +1,14 @@
+name: libra-transport-env
+
+channels:
+  - conda-forge
+  - defaults
+
+dependencies:
+  - pip
+  - fenics
+  - matplotlib
+  - numpy
+  - mshr
+  - pip:
+    - festim>1.1
