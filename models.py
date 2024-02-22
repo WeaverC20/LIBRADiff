@@ -353,11 +353,12 @@ def t_transport_sim(
 
     average_conc = my_data["Average_solute_volume_1"]
 
-    A = 0.0761 * 0.0162  # m2
-    k = total_flux / (A * average_conc)
+    total_surface = 2 * np.pi * f.assemble(rthetaz[0] * model_2d.mesh.ds)
+    print(f"Total surface: {total_surface:.2e} m2")
+    k = total_flux / (total_surface * average_conc)
 
-    print(f"Total flux: {total_flux} H/s/m")
-    print(f"Average concentration: {average_conc} H/m3")
-    print(f"k: {k} /s  (double check the units)")
+    print(f"Total flux: {total_flux:.2e} H/s/m")
+    print(f"Average concentration: {average_conc:.2e} H/m3")
+    print(f"k: {k:.2e} m/s")
 
     return k
