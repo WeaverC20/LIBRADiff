@@ -255,8 +255,12 @@ def t_transport_sim(
     )  # dummy temperature, will be overwritten later
 
     # setting up T source
+    rthetaz = f.SpatialCoordinate(mesh_fenics)
+    salt_volume = 2 * np.pi * f.assemble(rthetaz[0] * f.dx())
+    measured_tritium_source = 1.84e5  # T/s
+
     model_2d.sources = [
-        F.Source(value=1.84 * 10**5 / (0.0761 * 0.0162), volume=1, field=0)
+        F.Source(value=measured_tritium_source / salt_volume, volume=1, field=0)
     ]
 
     top_id = correspondance_dict["top"]
