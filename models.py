@@ -332,7 +332,7 @@ def t_transport_sim(
     plt.figure()
     plt.title("Hydrogen concentration")
     CS = f.plot(hydrogen_concentration)
-    f.plot(velocity, scale=1e-3, color="black", alpha=0.5)
+    # f.plot(velocity, scale=1e-3, color="black", alpha=0.5)
     plt.colorbar(CS, label="H/m3")
     plt.show()
 
