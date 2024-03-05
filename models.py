@@ -361,4 +361,4 @@ def t_transport_sim(
     print(f"Average concentration: {average_conc:.2e} H/m3")
     print(f"k: {k:.2e} m/s")
 
-    return k
+    return k, average_conc, total_flux
