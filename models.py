@@ -18,7 +18,7 @@ def mesh_2d():
     p2 = f.Point(x1 + x2, y2)
     r2 = Rectangle(p1, p2)
     domain = r1 + r2
-    mesh_fenics = generate_mesh(domain, 70)
+    mesh_fenics = generate_mesh(domain, 30)
 
     f.plot(mesh_fenics)
 
@@ -216,6 +216,7 @@ def t_transport_sim(
     volume_markers,
     surface_markers,
     correspondance_dict,
+    filename="",
 ):
     """
     Takes in a list of temperatures and a set mesh and returns a list of diffusion coefficients that correspond to each temperature
@@ -330,10 +331,11 @@ def t_transport_sim(
     model_2d.run()
 
     plt.figure()
-    plt.title("Hydrogen concentration")
+    # plt.title("Hydrogen concentration")
     CS = f.plot(hydrogen_concentration)
     # f.plot(velocity, scale=1e-3, color="black", alpha=0.5)
     plt.colorbar(CS, label="H/m3")
+    plt.savefig(filename)
     plt.show()
 
     # reading results
@@ -361,4 +363,4 @@ def t_transport_sim(
     print(f"Average concentration: {average_conc:.2e} H/m3")
     print(f"k: {k:.2e} m/s")
 
-    return k
+    return k, average_conc, total_flux
