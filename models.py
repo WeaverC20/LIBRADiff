@@ -257,7 +257,7 @@ def t_transport_sim(
     # setting up T source
     rthetaz = f.SpatialCoordinate(mesh_fenics)
     salt_volume = 2 * np.pi * f.assemble(rthetaz[0] * f.dx())
-    measured_tritium_source = 1.84e5  # T/s
+    measured_tritium_source = 3.24e5  # T/s
 
     model_2d.sources = [
         F.Source(value=measured_tritium_source / salt_volume, volume=1, field=0)
