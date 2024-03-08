@@ -216,6 +216,8 @@ def t_transport_sim(
     volume_markers,
     surface_markers,
     correspondance_dict,
+    D_0=1.508521565198744e-08,
+    E_D=0.23690444592353738,
 ):
     """
     Takes in a list of temperatures and a set mesh and returns a list of diffusion coefficients that correspond to each temperature
@@ -232,11 +234,10 @@ def t_transport_sim(
     model_2d = F.Simulation()
 
     # D, E_d source: "nakamura_hydrogen_2015"
-    # Thermal cond source: https://dspace.mit.edu/bitstream/handle/1721.1/123988/Romatoski_SaltPropertyReview02.pdf?sequence=1&isAllowed=y#:~:text=From%20the%20data%20collected%2C%20the,an%20uncertainty%20of%20%C2%B110%25.
     flibe_mat = F.Material(
         id=1,
-        D_0=1.508521565198744e-08,
-        E_D=0.23690444592353738,
+        D_0=D_0,
+        E_D=E_D,
     )
     model_2d.materials = F.Materials([flibe_mat])
 
