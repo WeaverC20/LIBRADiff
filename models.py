@@ -6,19 +6,22 @@ from flibe_props import *
 
 
 def mesh_2d():
+
+    x_off = 10
+
     x1 = 0.00476
     x2 = 0.0162
     y1 = 0.01
     y2 = 0.0761
 
-    p1 = f.Point(0, 0)
-    p2 = f.Point(x1, y1)
+    p1 = f.Point(x_off, 0)
+    p2 = f.Point(x1 + x_off, y1)
     r1 = Rectangle(p1, p2)
-    p1 = f.Point(x1, 0)
-    p2 = f.Point(x1 + x2, y2)
+    p1 = f.Point(x1 + x_off, 0)
+    p2 = f.Point(x1 + x2 + x_off, y2)
     r2 = Rectangle(p1, p2)
     domain = r1 + r2
-    mesh_fenics = generate_mesh(domain, 50)
+    mesh_fenics = generate_mesh(domain, 70)
 
     f.plot(mesh_fenics)
 
@@ -26,10 +29,10 @@ def mesh_2d():
     volume_markers = f.MeshFunction("size_t", mesh_fenics, mesh_fenics.topology().dim())
     volume_markers.set_all(1)
 
-    left_surface_str = f"on_boundary && near(x[0], 0, tol)"
+    left_surface_str = f"on_boundary && near(x[0], {x_off}, tol)"
     left_surface = f.CompiledSubDomain(left_surface_str, tol=1e-14)
 
-    right_surface_str = f"on_boundary && near(x[0], {x1 + x2}, tol)"
+    right_surface_str = f"on_boundary && near(x[0], {x1 + x2 + x_off}, tol)"
     right_surface = f.CompiledSubDomain(right_surface_str, tol=1e-14)
 
     bottom_surface_str = f"on_boundary && near(x[1], 0, tol)"
@@ -38,7 +41,7 @@ def mesh_2d():
     top_surface_str = f"on_boundary && near(x[1], {y2}, tol)"
     top_surface = f.CompiledSubDomain(top_surface_str, tol=1e-14)
 
-    upper_left_surface_str = f"on_boundary && near(x[0], {x1}, tol)"
+    upper_left_surface_str = f"on_boundary && near(x[0], {x1 + x_off}, tol)"
     upper_left_surface = f.CompiledSubDomain(upper_left_surface_str, tol=1e-14)
 
     left_top_surface_str = f"on_boundary && near(x[1], {y1}, tol)"
