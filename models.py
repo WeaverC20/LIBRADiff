@@ -367,3 +367,175 @@ def t_transport_sim(
     print(f"k: {k:.2e} m/s")
 
     return k, average_conc, total_flux
+
+
+def transient_t_transport_sim(
+    temperature_field,
+    mesh_fenics,
+    velocity,
+    volume_markers,
+    surface_markers,
+    correspondance_dict,
+    D_0=1.508521565198744e-08,
+    E_D=0.23690444592353738,
+):
+    """
+    Takes in a list of temperatures and a set mesh and returns a list of diffusion coefficients that correspond to each temperature
+
+    Args:
+        temperature_field (fenics.Function): the temperature field in K
+        mesh_fenics (fenics.Mesh): the mesh (should be the same as the one used to compute the temperature field)
+        velocity (fenics.Function): the velocity field in m/s
+
+    Returns:
+        float: the mass transport coefficient in m/s
+    """
+    # setting up current simulation
+    model_2d = F.Simulation()
+
+    # D, E_d source: "nakamura_hydrogen_2015"
+    flibe_mat = F.Material(
+        id=1,
+        D_0=D_0,
+        E_D=E_D,
+    )
+    model_2d.materials = F.Materials([flibe_mat])
+
+    # creating mesh with festim
+    model_2d.mesh = F.Mesh(
+        mesh=mesh_fenics,  # TODO we should be able to get the mesh from the temperature field
+        volume_markers=volume_markers,
+        surface_markers=surface_markers,
+    )
+
+    # setting up steady state heat transfer problem
+
+    # model_2d.T = F.TemperatureFromXDMF(temperature_file, label="temperature")
+    model_2d.T = F.Temperature(
+        value=973
+    )  # dummy temperature, will be overwritten later
+
+    # setting up T source
+    rthetaz = f.SpatialCoordinate(mesh_fenics)
+    salt_volume = 2 * np.pi * f.assemble(rthetaz[0] * f.dx())
+    measured_tritium_source = 3.24e5  # T/s
+
+    x = symbols('x')
+    f = Piecewise((1, (x >= 0) & (x < 0.5)), 
+                (0, (x >= 0.5) & (x < 1)),
+                (1, (x >= 1) & (x < 1.5)),
+                (0, True))
+
+    model_2d.sources = [
+        F.Source(value=measured_tritium_source / salt_volume, volume=1, field=0)
+    ]
+
+    top_id = correspondance_dict["top"]
+    bottom_id = correspondance_dict["bottom"]
+    right_id = correspondance_dict["right"]
+    left_id = correspondance_dict["left"]
+    upper_left_id = correspondance_dict["upper_left"]
+    left_top_id = correspondance_dict["left_top"]
+
+    # setting up transport boundary conditions
+    tritium_transport_bcs = [
+        F.DirichletBC(
+            surfaces=[top_id, bottom_id, right_id, left_top_id, left_id, upper_left_id],
+            value=0,
+            field=0,
+        )
+    ]
+
+    model_2d.boundary_conditions = tritium_transport_bcs
+
+
+    model_2d.dt = F.Stepsize(
+    initial_value=0.5,
+    stepsize_change_ratio=1.1,
+    t_stop=implantation_time - 20,
+    stepsize_stop_max=0.5,
+    dt_min=1
+)
+
+    # simulation parameters and running model
+    model_2d.settings = F.Settings(
+        absolute_tolerance=1e-09,
+        relative_tolerance=1e-09,
+        final_time=7*24*60*60
+    )
+
+    # setting up exports
+    export_folder = "BABY_2D_results"
+
+    derived_quantities = F.DerivedQuantities(filename=export_folder + "/simulation.csv")
+
+    derived_quantities.derived_quantities = [
+        SurfaceFluxCylindrical(field="solute", surface=right_id),
+        SurfaceFluxCylindrical(field="solute", surface=top_id),
+        SurfaceFluxCylindrical(field="solute", surface=bottom_id),
+        SurfaceFluxCylindrical(field="solute", surface=upper_left_id),
+        SurfaceFluxCylindrical(field="solute", surface=left_id),
+        SurfaceFluxCylindrical(field="solute", surface=left_top_id),
+        AverageVolumeCylindrical(field="solute", volume=1),
+    ]
+
+    model_2d.exports = F.Exports(
+        [
+            F.XDMFExport("solute", folder=export_folder),
+            F.XDMFExport("retention", folder=export_folder),
+            F.XDMFExport("T", folder=export_folder),
+            derived_quantities,
+        ]
+    )
+    # adding advection
+    model_2d.initialise()  # reinitialisation is needed
+
+    model_2d.T.T = temperature_field
+    # model_2d.T.T_n = temperature_field  # don't know if this is needed
+
+    hydrogen_concentration = model_2d.h_transport_problem.mobile.solution
+    test_function_solute = model_2d.h_transport_problem.mobile.test_function
+
+    advection_term = (
+        f.inner(f.dot(f.grad(hydrogen_concentration), velocity), test_function_solute)
+        * model_2d.mesh.dx
+    )
+
+    model_2d.h_transport_problem.F += advection_term
+
+    model_2d.run()
+
+    plt.figure()
+    plt.title("Hydrogen concentration")
+    CS = f.plot(hydrogen_concentration)
+    # f.plot(velocity, scale=1e-3, color="black", alpha=0.5)
+    plt.colorbar(CS, label="H/m3")
+    plt.axis("off")
+    plt.show()
+
+    # reading results
+    my_data = np.genfromtxt(
+        export_folder + "/simulation.csv", names=True, delimiter=","
+    )
+
+    flux_1 = my_data["Flux_surface_1_solute"]
+    flux_2 = my_data["Flux_surface_2_solute"]
+    flux_3 = my_data["Flux_surface_3_solute"]
+    flux_4 = my_data["Flux_surface_4_solute"]
+    flux_5 = my_data["Flux_surface_5_solute"]
+    flux_6 = my_data["Flux_surface_6_solute"]
+
+    # calculating diffusion coefficient
+    total_flux = abs(flux_1 + flux_2 + flux_3 + flux_4 + flux_5 + flux_6)
+
+    average_conc = my_data["Average_solute_volume_1"]
+
+    total_surface = 2 * np.pi * f.assemble(rthetaz[0] * model_2d.mesh.ds)
+    print(f"Total surface: {total_surface:.2e} m2")
+    k = total_flux / (total_surface * average_conc)
+
+    print(f"Total flux: {total_flux:.2e} H/s/m")
+    print(f"Average concentration: {average_conc:.2e} H/m3")
+    print(f"k: {k:.2e} m/s")
+
+    return k, average_conc, total_flux
