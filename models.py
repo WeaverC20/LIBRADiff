@@ -23,7 +23,7 @@ def mesh_2d():
     p2 = f.Point(x1 + x2 + x_off, y2)
     r2 = Rectangle(p1, p2)
     domain = r1 + r2
-    mesh_fenics = generate_mesh(domain, 30)
+    mesh_fenics = generate_mesh(domain, 100)
 
     f.plot(mesh_fenics)
 
@@ -441,7 +441,7 @@ def transient_t_transport_sim(
     # TODO transient source term?
     # TODO change this to be actually 12 hrs
 
-    twelve_hr = 60
+    twelve_hr = 12*3600
 
     func = Piecewise((3.65e5, (F.t >= 0) & (F.t < twelve_hr)), 
                 (0, (F.t >= twelve_hr) & (F.t < 2*twelve_hr)),
@@ -451,8 +451,6 @@ def transient_t_transport_sim(
     model_2d.sources = [
         F.Source(value = func / salt_volume, volume=1, field=0)
     ]
-
-
 
     top_id = correspondance_dict["top"]
     bottom_id = correspondance_dict["bottom"]
@@ -476,7 +474,7 @@ def transient_t_transport_sim(
     # TODO check transient timesteps
 
     model_2d.dt = F.Stepsize(
-    initial_value=0.5,
+    initial_value=100,
     stepsize_change_ratio=1.1,
     dt_min=1e-05
 )
@@ -485,9 +483,9 @@ def transient_t_transport_sim(
 
     # simulation parameters and running model
     model_2d.settings = F.Settings(
-        absolute_tolerance=1e10,
+        absolute_tolerance=1e-5,
         relative_tolerance=1e-09,
-        final_time=500
+        final_time=14*twelve_hr
     )
 
     # setting up exports
@@ -532,6 +530,8 @@ def transient_t_transport_sim(
     )
 
     model_2d.h_transport_problem.F += advection_term
+
+    # model_2d.log_level = 20
 
     model_2d.run()
 
