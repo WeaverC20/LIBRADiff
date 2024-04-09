@@ -23,7 +23,7 @@ def mesh_2d():
     p2 = f.Point(x1 + x2 + x_off, y2)
     r2 = Rectangle(p1, p2)
     domain = r1 + r2
-    mesh_fenics = generate_mesh(domain, 70)
+    mesh_fenics = generate_mesh(domain, 30)
 
     f.plot(mesh_fenics)
 
@@ -412,10 +412,18 @@ def transient_t_transport_sim(
 
     # setting up steady state heat transfer problem
 
+    # TODO fix this.  Should not be piecewise
+
     # model_2d.T = F.TemperatureFromXDMF(temperature_file, label="temperature")
     model_2d.T = F.Temperature(
         value=973
     )  # dummy temperature, will be overwritten later
+
+    # model_2d.T = F.Temperature(
+    #     value=sp.Piecewise(
+    #         (973, True)
+    #     )
+    # )
 
     # setting up T source
     rthetaz = f.SpatialCoordinate(mesh_fenics)
@@ -493,7 +501,7 @@ def transient_t_transport_sim(
         SurfaceFluxCylindrical(field="solute", surface=left_id),
         SurfaceFluxCylindrical(field="solute", surface=left_top_id),
         AverageVolumeCylindrical(field="solute", volume=1),
-
+        TotalVolumeCylindrical(field="solute", volume=1)
     ]
 
     model_2d.exports = F.Exports(
@@ -551,6 +559,7 @@ def transient_t_transport_sim(
 
 
     average_conc = my_data["Average_solute_volume_1"]
+    total_vol = my_data["Total_solute_volume_1"]
 
     # total_surface = 2 * np.pi * f.assemble(rthetaz[0] * model_2d.mesh.ds)
     # print(f"Total surface: {total_surface:.2e} m2")

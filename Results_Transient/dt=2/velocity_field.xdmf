@@ -2,14 +2,14 @@
 <Xdmf Version="3.0">
   <Domain>
     <Grid Name="mesh" GridType="Uniform">
-      <Topology NumberOfElements="6223" TopologyType="Triangle" NodesPerElement="3">
-        <DataItem Dimensions="6223 3" NumberType="UInt" Format="HDF">velocity_field.h5:/Mesh/mesh/topology</DataItem>
+      <Topology NumberOfElements="12659" TopologyType="Triangle" NodesPerElement="3">
+        <DataItem Dimensions="12659 3" NumberType="UInt" Format="HDF">velocity_field.h5:/Mesh/mesh/topology</DataItem>
       </Topology>
       <Geometry GeometryType="XY">
-        <DataItem Dimensions="3280 2" Format="HDF">velocity_field.h5:/Mesh/mesh/geometry</DataItem>
+        <DataItem Dimensions="6514 2" Format="HDF">velocity_field.h5:/Mesh/mesh/geometry</DataItem>
       </Geometry>
       <Attribute Name="f_22-0" AttributeType="Vector" Center="Node">
-        <DataItem Dimensions="3280 3" Format="HDF">velocity_field.h5:/VisualisationVector/0</DataItem>
+        <DataItem Dimensions="6514 3" Format="HDF">velocity_field.h5:/VisualisationVector/0</DataItem>
       </Attribute>
     </Grid>
   </Domain>
