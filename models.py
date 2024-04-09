@@ -413,11 +413,18 @@ def transient_t_transport_sim(
     # setting up steady state heat transfer problem
 
     # TODO fix this.  Should not be piecewise
-
-    # model_2d.T = F.TemperatureFromXDMF(temperature_file, label="temperature")
-    model_2d.T = F.Temperature(
-        value=973
-    )  # dummy temperature, will be overwritten later
+    temperature_file = "temperature.xdmf"
+    f.XDMFFile(temperature_file).write_checkpoint(
+                temperature_field,
+                "temperature",
+                0,
+                f.XDMFFile.Encoding.HDF5,
+                append=False,
+    )
+    model_2d.T = F.TemperatureFromXDMF(temperature_file, label="temperature")
+    # model_2d.T = F.Temperature(
+    #     value=973
+    # )  # dummy temperature, will be overwritten later
 
     # model_2d.T = F.Temperature(
     #     value=sp.Piecewise(
@@ -471,8 +478,6 @@ def transient_t_transport_sim(
     model_2d.dt = F.Stepsize(
     initial_value=0.5,
     stepsize_change_ratio=1.1,
-    t_stop=60*7,
-    stepsize_stop_max=0.5,
     dt_min=1e-05
 )
 
@@ -515,7 +520,7 @@ def transient_t_transport_sim(
     # adding advection
     model_2d.initialise()  # reinitialisation is needed
 
-    model_2d.T.T = temperature_field
+    # model_2d.T.T = temperature_field
     # model_2d.T.T_n = temperature_field  # don't know if this is needed
 
     hydrogen_concentration = model_2d.h_transport_problem.mobile.solution
@@ -551,8 +556,8 @@ def transient_t_transport_sim(
     flux_6 = my_data["Flux_surface_6_solute"]
 
     # calculating diffusion coefficient
-    wall_flux = abs(flux_3.data  + flux_4.data)
-    top_flux = abs(flux_2)
+    wall_flux = np.abs(flux_3  + flux_4)
+    top_flux = np.abs(flux_2)
 
     print(wall_flux)
 
