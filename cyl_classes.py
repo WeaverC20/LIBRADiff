@@ -54,3 +54,15 @@ class SurfaceFluxCylindrical(F.SurfaceFlux): # Inherets from class SurfaceFlux
         theta = 2 * np.pi
         flux *= theta
         return flux
+    
+class TotalVolumeCylindrical(F.VolumeQuantity):
+    def __init__(self, field, volume) -> None:
+        super().__init__(field, volume=volume)
+        self.title = "Total {} volume {}".format(self.field, self.volume)
+
+    def compute(self):
+        mesh = self.function.function_space().mesh()  # get the mesh from the function
+        rthetaz = f.SpatialCoordinate(mesh)  # get the coordinates from the mesh
+        r = rthetaz[0]  # only care about r here
+
+        return f.assemble(self.function * r * self.dx(self.volume))
