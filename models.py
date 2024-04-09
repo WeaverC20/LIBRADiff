@@ -3,6 +3,8 @@ import festim as F
 from mshr import Rectangle, generate_mesh
 from cyl_classes import *
 from flibe_props import *
+import sympy as sp
+from sympy import Piecewise
 
 
 def mesh_2d():
@@ -418,17 +420,24 @@ def transient_t_transport_sim(
     # setting up T source
     rthetaz = f.SpatialCoordinate(mesh_fenics)
     salt_volume = 2 * np.pi * f.assemble(rthetaz[0] * f.dx())
-    measured_tritium_source = 3.24e5  # T/s
+    measured_tritium_source = 3.65e5  # T/s
 
-    x = symbols('x')
-    f = Piecewise((1, (x >= 0) & (x < 0.5)), 
-                (0, (x >= 0.5) & (x < 1)),
-                (1, (x >= 1) & (x < 1.5)),
+
+    # TODO transient source term?
+    # TODO change this to be actually 12 hrs
+
+    twelve_hr = 60
+
+    func = Piecewise((3.65e5, (F.t >= 0) & (F.t < twelve_hr)), 
+                (0, (F.t >= twelve_hr) & (F.t < 2*twelve_hr)),
+                (3.65e5, (F.t >= 2*twelve_hr) & (F.t < 3*twelve_hr)),
                 (0, True))
 
     model_2d.sources = [
-        F.Source(value=measured_tritium_source / salt_volume, volume=1, field=0)
+        F.Source(value = func / salt_volume, volume=1, field=0)
     ]
+
+
 
     top_id = correspondance_dict["top"]
     bottom_id = correspondance_dict["bottom"]
@@ -449,25 +458,32 @@ def transient_t_transport_sim(
     model_2d.boundary_conditions = tritium_transport_bcs
 
 
+    # TODO check transient timesteps
+
     model_2d.dt = F.Stepsize(
     initial_value=0.5,
     stepsize_change_ratio=1.1,
-    t_stop=implantation_time - 20,
+    t_stop=60*7,
     stepsize_stop_max=0.5,
-    dt_min=1
+    dt_min=1e-05
 )
+
+    # TODO change this back to 10^-9 on both
 
     # simulation parameters and running model
     model_2d.settings = F.Settings(
-        absolute_tolerance=1e-09,
+        absolute_tolerance=1e10,
         relative_tolerance=1e-09,
-        final_time=7*24*60*60
+        final_time=500
     )
 
     # setting up exports
     export_folder = "BABY_2D_results"
 
     derived_quantities = F.DerivedQuantities(filename=export_folder + "/simulation.csv")
+
+
+    # TODO T retained in wall as derived quantity
 
     derived_quantities.derived_quantities = [
         SurfaceFluxCylindrical(field="solute", surface=right_id),
@@ -477,6 +493,7 @@ def transient_t_transport_sim(
         SurfaceFluxCylindrical(field="solute", surface=left_id),
         SurfaceFluxCylindrical(field="solute", surface=left_top_id),
         AverageVolumeCylindrical(field="solute", volume=1),
+
     ]
 
     model_2d.exports = F.Exports(
@@ -526,16 +543,21 @@ def transient_t_transport_sim(
     flux_6 = my_data["Flux_surface_6_solute"]
 
     # calculating diffusion coefficient
-    total_flux = abs(flux_1 + flux_2 + flux_3 + flux_4 + flux_5 + flux_6)
+    wall_flux = abs(flux_3.data  + flux_4.data)
+    top_flux = abs(flux_2)
+
+    print(wall_flux)
+
+
 
     average_conc = my_data["Average_solute_volume_1"]
 
-    total_surface = 2 * np.pi * f.assemble(rthetaz[0] * model_2d.mesh.ds)
-    print(f"Total surface: {total_surface:.2e} m2")
-    k = total_flux / (total_surface * average_conc)
+    # total_surface = 2 * np.pi * f.assemble(rthetaz[0] * model_2d.mesh.ds)
+    # print(f"Total surface: {total_surface:.2e} m2")
+    # k = total_flux / (total_surface * average_conc)
 
-    print(f"Total flux: {total_flux:.2e} H/s/m")
-    print(f"Average concentration: {average_conc:.2e} H/m3")
-    print(f"k: {k:.2e} m/s")
+    # print(f"Total flux: {total_flux:.2e} H/s/m")
+    # print(f"Average concentration: {average_conc:.2e} H/m3")
+    # print(f"k: {k:.2e} m/s")
 
-    return k, average_conc, total_flux
+    return wall_flux, top_flux, derived_quantities.t
