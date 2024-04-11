@@ -2,6 +2,7 @@ import festim as F
 import numpy as np
 import fenics as f
 
+
 class AverageVolumeCylindrical(F.VolumeQuantity):
     def __init__(self, field, volume: int) -> None:
         super().__init__(field, volume)
@@ -16,7 +17,8 @@ class AverageVolumeCylindrical(F.VolumeQuantity):
             r * self.dx(self.volume)
         )
 
-class SurfaceFluxCylindrical(F.SurfaceFlux): # Inherets from class SurfaceFlux
+
+class SurfaceFluxCylindrical(F.SurfaceFlux):  # Inherets from class SurfaceFlux
     def __init__(self, field, surface) -> None:
         super().__init__(field, surface)
         self.r = None
@@ -54,7 +56,8 @@ class SurfaceFluxCylindrical(F.SurfaceFlux): # Inherets from class SurfaceFlux
         theta = 2 * np.pi
         flux *= theta
         return flux
-    
+
+
 class TotalVolumeCylindrical(F.VolumeQuantity):
     def __init__(self, field, volume) -> None:
         super().__init__(field, volume=volume)
