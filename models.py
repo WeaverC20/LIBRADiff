@@ -415,11 +415,11 @@ def transient_t_transport_sim(
     # TODO fix this.  Should not be piecewise
     temperature_file = "temperature.xdmf"
     f.XDMFFile(temperature_file).write_checkpoint(
-                temperature_field,
-                "temperature",
-                0,
-                f.XDMFFile.Encoding.HDF5,
-                append=False,
+        temperature_field,
+        "temperature",
+        0,
+        f.XDMFFile.Encoding.HDF5,
+        append=False,
     )
     model_2d.T = F.TemperatureFromXDMF(temperature_file, label="temperature")
     # model_2d.T = F.Temperature(
@@ -437,20 +437,16 @@ def transient_t_transport_sim(
     salt_volume = 2 * np.pi * f.assemble(rthetaz[0] * f.dx())
     measured_tritium_source = 3.65e5  # T/s
 
+    twelve_hr = 12 * 3600
 
-    # TODO transient source term?
-    # TODO change this to be actually 12 hrs
+    func = Piecewise(
+        (measured_tritium_source, (F.t >= 0) & (F.t < twelve_hr)),
+        (0, (F.t >= twelve_hr) & (F.t < 2 * twelve_hr)),
+        (measured_tritium_source, (F.t >= 2 * twelve_hr) & (F.t < 3 * twelve_hr)),
+        (0, True),
+    )
 
-    twelve_hr = 12*3600
-
-    func = Piecewise((3.65e5, (F.t >= 0) & (F.t < twelve_hr)), 
-                (0, (F.t >= twelve_hr) & (F.t < 2*twelve_hr)),
-                (3.65e5, (F.t >= 2*twelve_hr) & (F.t < 3*twelve_hr)),
-                (0, True))
-
-    model_2d.sources = [
-        F.Source(value = func / salt_volume, volume=1, field=0)
-    ]
+    model_2d.sources = [F.Source(value=func / salt_volume, volume=1, field=0)]
 
     top_id = correspondance_dict["top"]
     bottom_id = correspondance_dict["bottom"]
@@ -470,29 +466,21 @@ def transient_t_transport_sim(
 
     model_2d.boundary_conditions = tritium_transport_bcs
 
-
     # TODO check transient timesteps
 
-    model_2d.dt = F.Stepsize(
-    initial_value=100,
-    stepsize_change_ratio=1.1,
-    dt_min=1e-05
-)
+    model_2d.dt = F.Stepsize(initial_value=100, stepsize_change_ratio=1.1, dt_min=1e-05)
 
     # TODO change this back to 10^-9 on both
 
     # simulation parameters and running model
     model_2d.settings = F.Settings(
-        absolute_tolerance=1e-5,
-        relative_tolerance=1e-09,
-        final_time=14*twelve_hr
+        absolute_tolerance=1e-5, relative_tolerance=1e-09, final_time=14 * twelve_hr
     )
 
     # setting up exports
     export_folder = "BABY_2D_results"
 
     derived_quantities = F.DerivedQuantities(filename=export_folder + "/simulation.csv")
-
 
     # TODO T retained in wall as derived quantity
 
@@ -504,7 +492,7 @@ def transient_t_transport_sim(
         SurfaceFluxCylindrical(field="solute", surface=left_id),
         SurfaceFluxCylindrical(field="solute", surface=left_top_id),
         AverageVolumeCylindrical(field="solute", volume=1),
-        TotalVolumeCylindrical(field="solute", volume=1)
+        TotalVolumeCylindrical(field="solute", volume=1),
     ]
 
     model_2d.exports = F.Exports(
@@ -556,12 +544,10 @@ def transient_t_transport_sim(
     flux_6 = my_data["Flux_surface_6_solute"]
 
     # calculating diffusion coefficient
-    wall_flux = np.abs(flux_3  + flux_4)
+    wall_flux = np.abs(flux_3 + flux_4)
     top_flux = np.abs(flux_2)
 
     print(wall_flux)
-
-
 
     average_conc = my_data["Average_solute_volume_1"]
     total_vol = my_data["Total_solute_volume_1"]
