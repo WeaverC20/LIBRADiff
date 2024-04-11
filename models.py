@@ -458,7 +458,7 @@ def transient_t_transport_sim(
     # setting up transport boundary conditions
     tritium_transport_bcs = [
         F.DirichletBC(
-            surfaces=[top_id, bottom_id, right_id, left_top_id, left_id, upper_left_id],
+            surfaces=[top_id, bottom_id, right_id, left_top_id, upper_left_id],
             value=0,
             field=0,
         )
