@@ -21,7 +21,7 @@ def mesh_2d(x_off=0):
     p2 = f.Point(x1 + x2 + x_off, y2)
     r2 = Rectangle(p1, p2)
     domain = r1 + r2
-    mesh_fenics = generate_mesh(domain, 100)
+    mesh_fenics = generate_mesh(domain, 250)
 
     f.plot(mesh_fenics)
 
@@ -376,8 +376,8 @@ def transient_t_transport_sim(
     volume_markers,
     surface_markers,
     correspondance_dict,
-    D_0=1.508521565198744e-08,
-    E_D=0.23690444592353738,
+    D_0=1.508521565198744e-08,  # TODO take this from HTM
+    E_D=0.23690444592353738,  # TODO take this from HTM
 ):
     """
     Takes in a list of temperatures and a set mesh and returns a list of diffusion coefficients that correspond to each temperature
@@ -408,9 +408,6 @@ def transient_t_transport_sim(
         surface_markers=surface_markers,
     )
 
-    # setting up steady state heat transfer problem
-
-    # TODO fix this.  Should not be piecewise
     temperature_file = "temperature.xdmf"
     f.XDMFFile(temperature_file).write_checkpoint(
         temperature_field,
@@ -420,27 +417,20 @@ def transient_t_transport_sim(
         append=False,
     )
     model_2d.T = F.TemperatureFromXDMF(temperature_file, label="temperature")
-    # model_2d.T = F.Temperature(
-    #     value=973
-    # )  # dummy temperature, will be overwritten later
-
-    # model_2d.T = F.Temperature(
-    #     value=sp.Piecewise(
-    #         (973, True)
-    #     )
-    # )
 
     # setting up T source
     rthetaz = f.SpatialCoordinate(mesh_fenics)
-    salt_volume = 2 * np.pi * f.assemble(rthetaz[0] * f.dx())
+    salt_volume = 2 * f.pi * f.assemble(rthetaz[0] * f.dx())
+    print(f"Salt volume : {salt_volume} m3, {salt_volume * 1e6} mL")
+
     measured_tritium_source = 3.65e5  # T/s
 
     twelve_hr = 12 * 3600
 
     func = Piecewise(
-        (measured_tritium_source, (F.t >= 0) & (F.t < twelve_hr)),
-        (0, (F.t >= twelve_hr) & (F.t < 2 * twelve_hr)),
-        (measured_tritium_source, (F.t >= 2 * twelve_hr) & (F.t < 3 * twelve_hr)),
+        (measured_tritium_source, (F.t >= 0) & (F.t <= twelve_hr)),
+        (0, (F.t > twelve_hr) & (F.t < 2 * twelve_hr)),
+        (measured_tritium_source, (F.t >= 2 * twelve_hr) & (F.t <= 3 * twelve_hr)),
         (0, True),
     )
 
@@ -464,34 +454,41 @@ def transient_t_transport_sim(
 
     model_2d.boundary_conditions = tritium_transport_bcs
 
-    # TODO check transient timesteps
-
-    model_2d.dt = F.Stepsize(initial_value=100, stepsize_change_ratio=1.1, dt_min=1e-05)
-
-    # TODO change this back to 10^-9 on both
+    model_2d.dt = F.Stepsize(
+        initial_value=100,
+        stepsize_change_ratio=1.05,
+        milestones=[twelve_hr, 2 * twelve_hr, 3 * twelve_hr],
+    )
 
     # simulation parameters and running model
     model_2d.settings = F.Settings(
-        absolute_tolerance=1e-5, relative_tolerance=1e-09, final_time=14 * twelve_hr
+        absolute_tolerance=1e-10, relative_tolerance=1e-10, final_time=14 * twelve_hr
     )
 
     # setting up exports
-    export_folder = "BABY_2D_results"
+    export_folder = "Results_Transient"
 
-    derived_quantities = F.DerivedQuantities(filename=export_folder + "/simulation.csv")
+    top_flux = SurfaceFluxCylindrical(field="solute", surface=top_id)
+    right_flux = SurfaceFluxCylindrical(field="solute", surface=right_id)
+    bottom_flux = SurfaceFluxCylindrical(field="solute", surface=bottom_id)
+    upper_left_flux = SurfaceFluxCylindrical(field="solute", surface=upper_left_id)
+    left_flux = SurfaceFluxCylindrical(field="solute", surface=left_id)
+    left_top_flux = SurfaceFluxCylindrical(field="solute", surface=left_top_id)
+    total_volume = TotalVolumeCylindrical(field="solute", volume=1)
 
-    # TODO T retained in wall as derived quantity
-
-    derived_quantities.derived_quantities = [
-        SurfaceFluxCylindrical(field="solute", surface=right_id),
-        SurfaceFluxCylindrical(field="solute", surface=top_id),
-        SurfaceFluxCylindrical(field="solute", surface=bottom_id),
-        SurfaceFluxCylindrical(field="solute", surface=upper_left_id),
-        SurfaceFluxCylindrical(field="solute", surface=left_id),
-        SurfaceFluxCylindrical(field="solute", surface=left_top_id),
-        AverageVolumeCylindrical(field="solute", volume=1),
-        TotalVolumeCylindrical(field="solute", volume=1),
-    ]
+    derived_quantities = F.DerivedQuantities(
+        [
+            top_flux,
+            right_flux,
+            bottom_flux,
+            upper_left_flux,
+            left_flux,
+            left_top_flux,
+            AverageVolumeCylindrical(field="solute", volume=1),
+            total_volume,
+        ],
+        filename=export_folder + "/simulation.csv",
+    )
 
     model_2d.exports = F.Exports(
         [
@@ -503,9 +500,6 @@ def transient_t_transport_sim(
     )
     # adding advection
     model_2d.initialise()  # reinitialisation is needed
-
-    # model_2d.T.T = temperature_field
-    # model_2d.T.T_n = temperature_field  # don't know if this is needed
 
     hydrogen_concentration = model_2d.h_transport_problem.mobile.solution
     test_function_solute = model_2d.h_transport_problem.mobile.test_function
@@ -524,31 +518,21 @@ def transient_t_transport_sim(
     plt.figure()
     plt.title("Hydrogen concentration")
     CS = f.plot(hydrogen_concentration)
-    # f.plot(velocity, scale=1e-3, color="black", alpha=0.5)
     plt.colorbar(CS, label="H/m3")
     plt.axis("off")
     plt.show()
 
-    # reading results
-    my_data = np.genfromtxt(
-        export_folder + "/simulation.csv", names=True, delimiter=","
+    top_flux = np.abs(top_flux.data)
+    wall_flux = np.abs(
+        np.array(right_flux.data)
+        + np.array(left_flux.data)
+        + np.array(upper_left_flux.data)
+        + np.array(bottom_flux.data)
+        + np.array(left_top_flux.data)
     )
 
-    flux_1 = my_data["Flux_surface_1_solute"]
-    flux_2 = my_data["Flux_surface_2_solute"]
-    flux_3 = my_data["Flux_surface_3_solute"]
-    flux_4 = my_data["Flux_surface_4_solute"]
-    flux_5 = my_data["Flux_surface_5_solute"]
-    flux_6 = my_data["Flux_surface_6_solute"]
-
-    # calculating diffusion coefficient
-    wall_flux = np.abs(flux_3 + flux_4)
-    top_flux = np.abs(flux_2)
-
-    print(wall_flux)
-
-    average_conc = my_data["Average_solute_volume_1"]
-    total_vol = my_data["Total_solute_volume_1"]
+    # average_conc = my_data["Average_solute_volume_1"]
+    # total_vol = my_data["Total_solute_volume_1"]
 
     # total_surface = 2 * np.pi * f.assemble(rthetaz[0] * model_2d.mesh.ds)
     # print(f"Total surface: {total_surface:.2e} m2")
@@ -558,4 +542,4 @@ def transient_t_transport_sim(
     # print(f"Average concentration: {average_conc:.2e} H/m3")
     # print(f"k: {k:.2e} m/s")
 
-    return wall_flux, top_flux, derived_quantities.t
+    return wall_flux, top_flux, np.array(total_volume.data), derived_quantities.t
