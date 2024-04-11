@@ -11,5 +11,6 @@ dependencies:
   - numpy<1.25  # needed to avoid deprecation warning
   - mshr
   - ipykernel  # needed to run jupyter notebooks
+  - scipy
   - pip:
     - festim>1.1
