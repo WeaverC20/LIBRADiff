@@ -7,9 +7,7 @@ import sympy as sp
 from sympy import Piecewise
 
 
-def mesh_2d():
-
-    x_off = 10
+def mesh_2d(x_off=0):
 
     x1 = 0.00476
     x2 = 0.0162
