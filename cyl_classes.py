@@ -64,5 +64,5 @@ class TotalVolumeCylindrical(F.VolumeQuantity):
         mesh = self.function.function_space().mesh()  # get the mesh from the function
         rthetaz = f.SpatialCoordinate(mesh)  # get the coordinates from the mesh
         r = rthetaz[0]  # only care about r here
-
-        return f.assemble(self.function * r * self.dx(self.volume))
+        theta = 2 * np.pi  # assume 2 pi rotation
+        return theta * f.assemble(self.function * r * self.dx(self.volume))
