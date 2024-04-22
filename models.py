@@ -27,25 +27,75 @@ def mesh_2d(x_off=0):
     domain = r1 + r2
     mesh_fenics = generate_mesh(domain, 20)
 
-    # def density_function(x):
-    #     # Example: Increase density near surfaces (you can define your own function)
-    #     return 1.0 / (1.0 + x.norm())
+    f.plot(mesh_fenics)
 
-    # # Refine the mesh based on the density function
-    # refined_mesh = f.Mesh(mesh)
-    # for i in range(5):  # Repeat refinement multiple times for finer mesh
-    #     cell_markers = f.MeshFunction("bool", refined_mesh, refined_mesh.topology().dim())
-    #     for cell in f.cells(refined_mesh):
-    #         cell_center = cell.midpoint()
+    # marking physical groups (volumes and surfaces)
+    volume_markers = f.MeshFunction("size_t", mesh_fenics, mesh_fenics.topology().dim())
+    volume_markers.set_all(1)
 
-    #         # Assuming density_function returns values between 0 and 1
-    #         max_density = max(density_function(cell.midpoint()) for cell in f.cells(refined_mesh))
-    #         threshold = 0.5 * max_density  # Adjust the fraction as needed
+    left_surface_str = f"on_boundary && near(x[0], {x_off}, tol)"
+    left_surface = f.CompiledSubDomain(left_surface_str, tol=1e-14)
 
-    #         if density_function(cell_center) > threshold:  # You can adjust the threshold
-    #             cell_markers[cell] = True
-    #     f.adapt(refined_mesh, cell_markers)
-    #     refined_mesh = refined_mesh.child()
+    right_surface_str = f"on_boundary && near(x[0], {x1 + x2 + x_off}, tol)"
+    right_surface = f.CompiledSubDomain(right_surface_str, tol=1e-14)
+
+    bottom_surface_str = f"on_boundary && near(x[1], 0, tol)"
+    bottom_surface = f.CompiledSubDomain(bottom_surface_str, tol=1e-14)
+
+    top_surface_str = f"on_boundary && near(x[1], {y2}, tol)"
+    top_surface = f.CompiledSubDomain(top_surface_str, tol=1e-14)
+
+    upper_left_surface_str = f"on_boundary && near(x[0], {x1 + x_off}, tol)"
+    upper_left_surface = f.CompiledSubDomain(upper_left_surface_str, tol=1e-14)
+
+    left_top_surface_str = f"on_boundary && near(x[1], {y1}, tol)"
+    left_top_surface = f.CompiledSubDomain(left_top_surface_str, tol=1e-14)
+
+    surface_markers = f.MeshFunction(
+        "size_t", mesh_fenics, mesh_fenics.topology().dim() - 1
+    )
+    surface_markers.set_all(0)
+
+    # Surface ids
+    left_id = 1
+    top_id = 2
+    right_id = 3
+    bottom_id = 4
+    upper_left_id = 5
+    left_top_id = 6
+    left_surface.mark(surface_markers, left_id)
+    right_surface.mark(surface_markers, right_id)
+    top_surface.mark(surface_markers, top_id)
+    bottom_surface.mark(surface_markers, bottom_id)
+    upper_left_surface.mark(surface_markers, upper_left_id)
+    left_top_surface.mark(surface_markers, left_top_id)
+
+    f.plot(surface_markers, title="Surface Markers")
+    correspondance_dict = {
+        "left": left_id,
+        "top": top_id,
+        "right": right_id,
+        "bottom": bottom_id,
+        "upper_left": upper_left_id,
+        "left_top": left_top_id,
+    }
+    return mesh_fenics, volume_markers, surface_markers, correspondance_dict
+
+
+def load_xdmf_mesh(folder_name):
+    """
+    takes in xdmf mesh file and sets surface markers
+    """
+    x_off = 0
+
+    x1 = 0.00476
+    x2 = 0.0162
+    y1 = 0.01
+    y2 = 0.0761
+
+    # input_dict = {-6: ['fluid'], -7: ['top'], -8: ['bottom'], -9: ['right'], -10: ['left'], -11: ['top_heel'], -12: ['left_heel']}
+
+    mesh_fenics = F.MeshFromXDMF(volume_file=str(f"{folder_name}mesh_domains.xdmf"), boundary_file=f"{folder_name}mesh_boundaries.xdmf")
 
     f.plot(mesh_fenics)
 
