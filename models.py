@@ -101,65 +101,6 @@ def mesh_2d(x_off=0):
     }
     return mesh_fenics, volume_markers, surface_markers, correspondance_dict
 
-def mesh_2d_gmsh():
-    # Initialize Gmsh
-    gmsh.initialize()
-    
-    # Create a new Gmsh model
-    gmsh.model.add("backwards_l_mesh")
-    
-    # Parameters for the mesh
-    lc = 0.1  # Characteristic length
-    
-    # Define the points
-    p1 = gmsh.model.geo.addPoint(0.0, 0.0, 0.0, lc)
-    p2 = gmsh.model.geo.addPoint(-1.0, 0.0, 0.0, lc)
-    p3 = gmsh.model.geo.addPoint(-1.0, -1.0, 0.0, lc)
-    p4 = gmsh.model.geo.addPoint(-2.0, -1.0, 0.0, lc)
-    p5 = gmsh.model.geo.addPoint(-2.0, -2.0, 0.0, lc)
-    p6 = gmsh.model.geo.addPoint(0.0, -2.0, 0.0, lc)
-    
-    # Define the lines
-    l1 = gmsh.model.geo.addLine(p1, p2)
-    l2 = gmsh.model.geo.addLine(p2, p3)
-    l3 = gmsh.model.geo.addLine(p3, p4)
-    l4 = gmsh.model.geo.addLine(p4, p5)
-    l5 = gmsh.model.geo.addLine(p5, p6)
-    
-    # Define the physical lines (optional)
-    gmsh.model.addPhysicalGroup(1, [l1, l2, l3, l4, l5], 1)
-    gmsh.model.setPhysicalName(1, 1, "boundary")
-    
-    # Define the curve loop
-    cl1 = gmsh.model.geo.addCurveLoop([l1, l2, l3, l4, l5])
-    
-    # Define the surface
-    s1 = gmsh.model.geo.addPlaneSurface([cl1])
-
-    # Define the physical surface
-    gmsh.model.addPhysicalGroup(2, [s1], 1)
-    gmsh.model.setPhysicalName(2, 1, "domain")
-    
-    # Generate the mesh
-    gmsh.model.mesh.generate(2)
-    
-    # Save the mesh
-    gmsh.write("baby.msh")
-    
-    # Finalize Gmsh
-    gmsh.finalize()
-
-    subprocess.run(["dolfin-convert", "baby.msh", "baby.xml"])
-
-    mesh = Mesh("baby.xml")
-    cd = MeshFunction("size_t",mesh,"filename_physical_region.xml");
-    fd = MeshFunction("size_t",mesh,"filename_facet_region.xml");
-
-    f.plot(mesh)
-
-def mesh_2d_gmsh2():
-    
-
 
 def velocity_field(T_cold, T_hot, my_mesh, surface_markers, correspondance_dict):
     """Computes the velocity field for a given mesh and temperature difference
