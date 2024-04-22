@@ -27,25 +27,25 @@ def mesh_2d(x_off=0):
     domain = r1 + r2
     mesh_fenics = generate_mesh(domain, 20)
 
-    def density_function(x):
-        # Example: Increase density near surfaces (you can define your own function)
-        return 1.0 / (1.0 + x.norm())
+    # def density_function(x):
+    #     # Example: Increase density near surfaces (you can define your own function)
+    #     return 1.0 / (1.0 + x.norm())
 
-    # Refine the mesh based on the density function
-    refined_mesh = f.Mesh(mesh)
-    for i in range(5):  # Repeat refinement multiple times for finer mesh
-        cell_markers = f.MeshFunction("bool", refined_mesh, refined_mesh.topology().dim())
-        for cell in f.cells(refined_mesh):
-            cell_center = cell.midpoint()
+    # # Refine the mesh based on the density function
+    # refined_mesh = f.Mesh(mesh)
+    # for i in range(5):  # Repeat refinement multiple times for finer mesh
+    #     cell_markers = f.MeshFunction("bool", refined_mesh, refined_mesh.topology().dim())
+    #     for cell in f.cells(refined_mesh):
+    #         cell_center = cell.midpoint()
 
-            # Assuming density_function returns values between 0 and 1
-            max_density = max(density_function(cell.midpoint()) for cell in f.cells(refined_mesh))
-            threshold = 0.5 * max_density  # Adjust the fraction as needed
+    #         # Assuming density_function returns values between 0 and 1
+    #         max_density = max(density_function(cell.midpoint()) for cell in f.cells(refined_mesh))
+    #         threshold = 0.5 * max_density  # Adjust the fraction as needed
 
-            if density_function(cell_center) > threshold:  # You can adjust the threshold
-                cell_markers[cell] = True
-        f.adapt(refined_mesh, cell_markers)
-        refined_mesh = refined_mesh.child()
+    #         if density_function(cell_center) > threshold:  # You can adjust the threshold
+    #             cell_markers[cell] = True
+    #     f.adapt(refined_mesh, cell_markers)
+    #     refined_mesh = refined_mesh.child()
 
     f.plot(mesh_fenics)
 
