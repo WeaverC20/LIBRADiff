@@ -1,10 +1,14 @@
 import fenics as f
+from fenics import *
 import festim as F
 from mshr import Rectangle, generate_mesh
 from cyl_classes import *
 from flibe_props import *
 import sympy as sp
 from sympy import Piecewise
+
+import gmsh
+import subprocess
 
 
 def mesh_2d(x_off=0):
@@ -21,7 +25,27 @@ def mesh_2d(x_off=0):
     p2 = f.Point(x1 + x2 + x_off, y2)
     r2 = Rectangle(p1, p2)
     domain = r1 + r2
-    mesh_fenics = generate_mesh(domain, 250)
+    mesh_fenics = generate_mesh(domain, 20)
+
+    def density_function(x):
+        # Example: Increase density near surfaces (you can define your own function)
+        return 1.0 / (1.0 + x.norm())
+
+    # Refine the mesh based on the density function
+    refined_mesh = f.Mesh(mesh)
+    for i in range(5):  # Repeat refinement multiple times for finer mesh
+        cell_markers = f.MeshFunction("bool", refined_mesh, refined_mesh.topology().dim())
+        for cell in f.cells(refined_mesh):
+            cell_center = cell.midpoint()
+
+            # Assuming density_function returns values between 0 and 1
+            max_density = max(density_function(cell.midpoint()) for cell in f.cells(refined_mesh))
+            threshold = 0.5 * max_density  # Adjust the fraction as needed
+
+            if density_function(cell_center) > threshold:  # You can adjust the threshold
+                cell_markers[cell] = True
+        f.adapt(refined_mesh, cell_markers)
+        refined_mesh = refined_mesh.child()
 
     f.plot(mesh_fenics)
 
@@ -76,6 +100,65 @@ def mesh_2d(x_off=0):
         "left_top": left_top_id,
     }
     return mesh_fenics, volume_markers, surface_markers, correspondance_dict
+
+def mesh_2d_gmsh():
+    # Initialize Gmsh
+    gmsh.initialize()
+    
+    # Create a new Gmsh model
+    gmsh.model.add("backwards_l_mesh")
+    
+    # Parameters for the mesh
+    lc = 0.1  # Characteristic length
+    
+    # Define the points
+    p1 = gmsh.model.geo.addPoint(0.0, 0.0, 0.0, lc)
+    p2 = gmsh.model.geo.addPoint(-1.0, 0.0, 0.0, lc)
+    p3 = gmsh.model.geo.addPoint(-1.0, -1.0, 0.0, lc)
+    p4 = gmsh.model.geo.addPoint(-2.0, -1.0, 0.0, lc)
+    p5 = gmsh.model.geo.addPoint(-2.0, -2.0, 0.0, lc)
+    p6 = gmsh.model.geo.addPoint(0.0, -2.0, 0.0, lc)
+    
+    # Define the lines
+    l1 = gmsh.model.geo.addLine(p1, p2)
+    l2 = gmsh.model.geo.addLine(p2, p3)
+    l3 = gmsh.model.geo.addLine(p3, p4)
+    l4 = gmsh.model.geo.addLine(p4, p5)
+    l5 = gmsh.model.geo.addLine(p5, p6)
+    
+    # Define the physical lines (optional)
+    gmsh.model.addPhysicalGroup(1, [l1, l2, l3, l4, l5], 1)
+    gmsh.model.setPhysicalName(1, 1, "boundary")
+    
+    # Define the curve loop
+    cl1 = gmsh.model.geo.addCurveLoop([l1, l2, l3, l4, l5])
+    
+    # Define the surface
+    s1 = gmsh.model.geo.addPlaneSurface([cl1])
+
+    # Define the physical surface
+    gmsh.model.addPhysicalGroup(2, [s1], 1)
+    gmsh.model.setPhysicalName(2, 1, "domain")
+    
+    # Generate the mesh
+    gmsh.model.mesh.generate(2)
+    
+    # Save the mesh
+    gmsh.write("baby.msh")
+    
+    # Finalize Gmsh
+    gmsh.finalize()
+
+    subprocess.run(["dolfin-convert", "baby.msh", "baby.xml"])
+
+    mesh = Mesh("baby.xml")
+    cd = MeshFunction("size_t",mesh,"filename_physical_region.xml");
+    fd = MeshFunction("size_t",mesh,"filename_facet_region.xml");
+
+    f.plot(mesh)
+
+def mesh_2d_gmsh2():
+    
 
 
 def velocity_field(T_cold, T_hot, my_mesh, surface_markers, correspondance_dict):
