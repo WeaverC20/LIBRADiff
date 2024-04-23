@@ -97,7 +97,7 @@ def load_xdmf_mesh(folder_name):
 
     mesh_fenics = F.MeshFromXDMF(volume_file=str(f"{folder_name}mesh_domains.xdmf"), boundary_file=f"{folder_name}mesh_boundaries.xdmf")
 
-    f.plot(mesh_fenics)
+    # f.plot(mesh_fenics)
 
     # marking physical groups (volumes and surfaces)
     volume_markers = f.MeshFunction("size_t", mesh_fenics, mesh_fenics.topology().dim())
