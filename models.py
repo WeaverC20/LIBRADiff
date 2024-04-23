@@ -423,7 +423,7 @@ def transient_t_transport_sim(
     salt_volume = 2 * f.pi * f.assemble(rthetaz[0] * f.dx())
     print(f"Salt volume : {salt_volume} m3, {salt_volume * 1e6} mL")
 
-    measured_tritium_source = 3.65e5  # T/s
+    measured_tritium_source = 3.65e5 / 2  # T/s
 
     twelve_hr = 12 * 3600
 
@@ -475,7 +475,7 @@ def transient_t_transport_sim(
     left_flux = SurfaceFluxCylindrical(field="solute", surface=left_id)
     left_top_flux = SurfaceFluxCylindrical(field="solute", surface=left_top_id)
     total_volume = TotalVolumeCylindrical(field="solute", volume=1)
-
+    avg_concentration_quantity = AverageVolumeCylindrical(field="solute", volume=1)
     derived_quantities = F.DerivedQuantities(
         [
             top_flux,
@@ -484,7 +484,7 @@ def transient_t_transport_sim(
             upper_left_flux,
             left_flux,
             left_top_flux,
-            AverageVolumeCylindrical(field="solute", volume=1),
+            avg_concentration_quantity,
             total_volume,
         ],
         filename=export_folder + "/simulation.csv",
@@ -531,15 +531,24 @@ def transient_t_transport_sim(
         + np.array(left_top_flux.data)
     )
 
-    # average_conc = my_data["Average_solute_volume_1"]
-    # total_vol = my_data["Total_solute_volume_1"]
+    average_conc = np.array(avg_concentration_quantity.data)
 
-    # total_surface = 2 * np.pi * f.assemble(rthetaz[0] * model_2d.mesh.ds)
-    # print(f"Total surface: {total_surface:.2e} m2")
-    # k = total_flux / (total_surface * average_conc)
+    total_top_surface = 2 * np.pi * f.assemble(rthetaz[0] * model_2d.mesh.ds(top_id))
+    total_wall_surface = 0
+    for surface_id in [right_id, upper_left_id, bottom_id, left_top_id]:
+        total_wall_surface += (
+            2 * np.pi * f.assemble(rthetaz[0] * model_2d.mesh.ds(surface_id))
+        )
+    print(f"Top surface: {total_top_surface:.2e} m2")
+    print(f"Wall surface: {total_wall_surface:.2e} m2")
+    k_top = top_flux / (total_top_surface * average_conc)
+    k_wall = wall_flux / (total_wall_surface * average_conc)
 
-    # print(f"Total flux: {total_flux:.2e} H/s/m")
-    # print(f"Average concentration: {average_conc:.2e} H/m3")
-    # print(f"k: {k:.2e} m/s")
-
-    return wall_flux, top_flux, np.array(total_volume.data), derived_quantities.t
+    return (
+        wall_flux,
+        top_flux,
+        np.array(total_volume.data),
+        derived_quantities.t,
+        k_top,
+        k_wall,
+    )
