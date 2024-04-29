@@ -100,7 +100,6 @@ def load_xdmf_mesh(folder_name):
     # mesh_fenics = my_model.mesh
 
 
-
     volume_file = f"{folder_name}mesh_domains.xdmf"
     boundary_file = f"{folder_name}mesh_boundaries.xdmf"
 
@@ -119,16 +118,9 @@ def load_xdmf_mesh(folder_name):
     surface_markers = f.MeshFunction("size_t", mesh_fenics, surface_markers)
 
     print("Succesfully load mesh with " + str(len(volume_markers)) + " cells")
-    # volume_markers = volume_markers
-    # surface_markers = surface_markers
-
-
-
-
-
-    # marking physical groups (volumes and surfaces)
-    # volume_markers = f.MeshFunction("size_t", mesh_fenics, mesh_fenics.topology().dim())
     volume_markers.set_all(1)
+
+
 
     left_surface_str = f"on_boundary && near(x[0], {x_off}, tol)"
     left_surface = f.CompiledSubDomain(left_surface_str, tol=1e-14)
@@ -148,9 +140,6 @@ def load_xdmf_mesh(folder_name):
     left_top_surface_str = f"on_boundary && near(x[1], {y1}, tol)"
     left_top_surface = f.CompiledSubDomain(left_top_surface_str, tol=1e-14)
 
-    # surface_markers = f.MeshFunction(
-    #     "size_t", mesh_fenics, mesh_fenics.topology().dim() - 1
-    # )
     surface_markers.set_all(0)
 
     # Surface ids
