@@ -810,4 +810,4 @@ def transient_t_transport_sim(
     # print(f"Average concentration: {average_conc:.2e} H/m3")
     # print(f"k: {k:.2e} m/s")
 
-    return wall_flux, top_flux, np.array(total_volume.data), derived_quantities.t
+    return top_flux, wall_flux, np.array(total_volume.data), derived_quantities.t
