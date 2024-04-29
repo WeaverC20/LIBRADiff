@@ -691,7 +691,7 @@ def transient_t_transport_sim(
     salt_volume = 2 * f.pi * f.assemble(rthetaz[0] * f.dx())
     print(f"Salt volume : {salt_volume} m3, {salt_volume * 1e6} mL")
 
-    measured_tritium_source = 3.65e5  # T/s
+    measured_tritium_source = 1.83e5  # T/s
 
     twelve_hr = 12 * 3600
 
