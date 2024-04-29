@@ -95,14 +95,39 @@ def load_xdmf_mesh(folder_name):
 
     # input_dict = {-6: ['fluid'], -7: ['top'], -8: ['bottom'], -9: ['right'], -10: ['left'], -11: ['top_heel'], -12: ['left_heel']}
 
-    my_model = F.Simulation()
+    # my_model = F.Simulation()
+    # my_model.mesh = F.MeshFromXDMF(volume_file=f"{folder_name}mesh_domains.xdmf", boundary_file=f"{folder_name}mesh_boundaries.xdmf")
+    # mesh_fenics = my_model.mesh
 
-    my_model.mesh = F.MeshFromXDMF(volume_file=f"{folder_name}mesh_domains.xdmf", boundary_file=f"{folder_name}mesh_boundaries.xdmf")
 
-    mesh_fenics = my_model.mesh
+
+    volume_file = f"{folder_name}mesh_domains.xdmf"
+    boundary_file = f"{folder_name}mesh_boundaries.xdmf"
+
+    mesh_fenics = f.Mesh()
+    f.XDMFFile(volume_file).read(mesh_fenics)
+
+    volume_markers = f.MeshFunction("size_t", mesh_fenics, mesh_fenics.topology().dim())
+    f.XDMFFile(volume_file).read(volume_markers)
+
+    # Read tags for surface elements
+    # (can also be used for applying DirichletBC)
+    surface_markers = f.MeshValueCollection(
+        "size_t", mesh_fenics, mesh_fenics.topology().dim() - 1
+    )
+    f.XDMFFile(boundary_file).read(surface_markers, "f")
+    surface_markers = f.MeshFunction("size_t", mesh_fenics, surface_markers)
+
+    print("Succesfully load mesh with " + str(len(volume_markers)) + " cells")
+    # volume_markers = volume_markers
+    # surface_markers = surface_markers
+
+
+
+
 
     # marking physical groups (volumes and surfaces)
-    volume_markers = f.MeshFunction("size_t", mesh_fenics, mesh_fenics.topology().dim())
+    # volume_markers = f.MeshFunction("size_t", mesh_fenics, mesh_fenics.topology().dim())
     volume_markers.set_all(1)
 
     left_surface_str = f"on_boundary && near(x[0], {x_off}, tol)"
@@ -123,9 +148,9 @@ def load_xdmf_mesh(folder_name):
     left_top_surface_str = f"on_boundary && near(x[1], {y1}, tol)"
     left_top_surface = f.CompiledSubDomain(left_top_surface_str, tol=1e-14)
 
-    surface_markers = f.MeshFunction(
-        "size_t", mesh_fenics, mesh_fenics.topology().dim() - 1
-    )
+    # surface_markers = f.MeshFunction(
+    #     "size_t", mesh_fenics, mesh_fenics.topology().dim() - 1
+    # )
     surface_markers.set_all(0)
 
     # Surface ids
