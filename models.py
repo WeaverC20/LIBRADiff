@@ -78,6 +78,92 @@ def mesh_2d(x_off=0):
     return mesh_fenics, volume_markers, surface_markers, correspondance_dict
 
 
+def load_xdmf_mesh(folder_name):
+    """
+    takes in xdmf mesh file and sets surface markers
+    """
+    x_off = 0
+
+    x1 = 0.00476
+    x2 = 0.0162
+    y1 = 0.01
+    y2 = 0.0761
+
+    # input_dict = {-6: ['fluid'], -7: ['top'], -8: ['bottom'], -9: ['right'], -10: ['left'], -11: ['top_heel'], -12: ['left_heel']}
+
+    # my_model = F.Simulation()
+    # my_model.mesh = F.MeshFromXDMF(volume_file=f"{folder_name}mesh_domains.xdmf", boundary_file=f"{folder_name}mesh_boundaries.xdmf")
+    # mesh_fenics = my_model.mesh
+
+
+    volume_file = f"{folder_name}mesh_domains.xdmf"
+    boundary_file = f"{folder_name}mesh_boundaries.xdmf"
+
+    mesh_fenics = f.Mesh()
+    f.XDMFFile(volume_file).read(mesh_fenics)
+
+    volume_markers = f.MeshFunction("size_t", mesh_fenics, mesh_fenics.topology().dim())
+    f.XDMFFile(volume_file).read(volume_markers)
+
+    # Read tags for surface elements
+    # (can also be used for applying DirichletBC)
+    surface_markers = f.MeshValueCollection(
+        "size_t", mesh_fenics, mesh_fenics.topology().dim() - 1
+    )
+    f.XDMFFile(boundary_file).read(surface_markers, "f")
+    surface_markers = f.MeshFunction("size_t", mesh_fenics, surface_markers)
+
+    print("Succesfully load mesh with " + str(len(volume_markers)) + " cells")
+    volume_markers.set_all(1)
+
+
+
+    left_surface_str = f"on_boundary && near(x[0], {x_off}, tol)"
+    left_surface = f.CompiledSubDomain(left_surface_str, tol=1e-14)
+
+    right_surface_str = f"on_boundary && near(x[0], {x1 + x2 + x_off}, tol)"
+    right_surface = f.CompiledSubDomain(right_surface_str, tol=1e-14)
+
+    bottom_surface_str = f"on_boundary && near(x[1], 0, tol)"
+    bottom_surface = f.CompiledSubDomain(bottom_surface_str, tol=1e-14)
+
+    top_surface_str = f"on_boundary && near(x[1], {y2}, tol)"
+    top_surface = f.CompiledSubDomain(top_surface_str, tol=1e-14)
+
+    upper_left_surface_str = f"on_boundary && near(x[0], {x1 + x_off}, tol)"
+    upper_left_surface = f.CompiledSubDomain(upper_left_surface_str, tol=1e-14)
+
+    left_top_surface_str = f"on_boundary && near(x[1], {y1}, tol)"
+    left_top_surface = f.CompiledSubDomain(left_top_surface_str, tol=1e-14)
+
+    surface_markers.set_all(0)
+
+    # Surface ids
+    left_id = 1
+    top_id = 2
+    right_id = 3
+    bottom_id = 4
+    upper_left_id = 5
+    left_top_id = 6
+    left_surface.mark(surface_markers, left_id)
+    right_surface.mark(surface_markers, right_id)
+    top_surface.mark(surface_markers, top_id)
+    bottom_surface.mark(surface_markers, bottom_id)
+    upper_left_surface.mark(surface_markers, upper_left_id)
+    left_top_surface.mark(surface_markers, left_top_id)
+
+    f.plot(mesh_fenics)
+    correspondance_dict = {
+        "left": left_id,
+        "top": top_id,
+        "right": right_id,
+        "bottom": bottom_id,
+        "upper_left": upper_left_id,
+        "left_top": left_top_id,
+    }
+    return mesh_fenics, volume_markers, surface_markers, correspondance_dict
+
+
 def velocity_field(T_cold, T_hot, my_mesh, surface_markers, correspondance_dict):
     """Computes the velocity field for a given mesh and temperature difference
 
@@ -107,7 +193,7 @@ def velocity_field(T_cold, T_hot, my_mesh, surface_markers, correspondance_dict)
     v, q, S = f.TestFunctions(W)
 
     # Cylindrical Coordinates
-    for factor in [1e-03, 1e-02, 1e-01, 1]:
+    for factor in [1e-03, 1e-02, 1e-01, 3e-01, 1]:
         print("Running for factor={:.1e}".format(factor))
 
         g = f.Constant((0, -9.81))  # gravity acceleration in m/s2
