@@ -95,9 +95,11 @@ def load_xdmf_mesh(folder_name):
 
     # input_dict = {-6: ['fluid'], -7: ['top'], -8: ['bottom'], -9: ['right'], -10: ['left'], -11: ['top_heel'], -12: ['left_heel']}
 
-    mesh_fenics = F.MeshFromXDMF(volume_file=str(f"{folder_name}mesh_domains.xdmf"), boundary_file=f"{folder_name}mesh_boundaries.xdmf")
+    my_model = F.Simulation()
 
-    # f.plot(mesh_fenics)
+    my_model.mesh = F.MeshFromXDMF(volume_file=f"{folder_name}mesh_domains.xdmf", boundary_file=f"{folder_name}mesh_boundaries.xdmf")
+
+    mesh_fenics = my_model.mesh
 
     # marking physical groups (volumes and surfaces)
     volume_markers = f.MeshFunction("size_t", mesh_fenics, mesh_fenics.topology().dim())
