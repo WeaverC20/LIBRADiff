@@ -21,7 +21,7 @@ def mesh_2d(x_off=0):
     p2 = f.Point(x1 + x2 + x_off, y2)
     r2 = Rectangle(p1, p2)
     domain = r1 + r2
-    mesh_fenics = generate_mesh(domain, 250)
+    mesh_fenics = generate_mesh(domain, 100)
 
     f.plot(mesh_fenics)
 
@@ -261,7 +261,7 @@ def t_transport_sim(
     # setting up T source
     rthetaz = f.SpatialCoordinate(mesh_fenics)
     salt_volume = 2 * np.pi * f.assemble(rthetaz[0] * f.dx())
-    measured_tritium_source = 3.24e5  # T/s
+    measured_tritium_source = 1.83e5  # T/s
 
     model_2d.sources = [
         F.Source(value=measured_tritium_source / salt_volume, volume=1, field=0)
@@ -522,24 +522,31 @@ def transient_t_transport_sim(
     plt.axis("off")
     plt.show()
 
-    top_flux = np.abs(top_flux.data)
-    wall_flux = np.abs(
-        np.array(right_flux.data)
-        + np.array(left_flux.data)
-        + np.array(upper_left_flux.data)
-        + np.array(bottom_flux.data)
-        + np.array(left_top_flux.data)
+    # reading results
+    my_data = np.genfromtxt(
+        export_folder + "/simulation.csv", names=True, delimiter=","
     )
 
-    # average_conc = my_data["Average_solute_volume_1"]
-    # total_vol = my_data["Total_solute_volume_1"]
+    flux_1 = my_data["Flux_surface_1_solute"]
+    flux_2 = my_data["Flux_surface_2_solute"]
+    flux_3 = my_data["Flux_surface_3_solute"]
+    flux_4 = my_data["Flux_surface_4_solute"]
+    flux_5 = my_data["Flux_surface_5_solute"]
+    flux_6 = my_data["Flux_surface_6_solute"]
 
-    # total_surface = 2 * np.pi * f.assemble(rthetaz[0] * model_2d.mesh.ds)
-    # print(f"Total surface: {total_surface:.2e} m2")
-    # k = total_flux / (total_surface * average_conc)
+    # calculating diffusion coefficient
+    total_flux = abs(flux_1 + flux_2 + flux_3 + flux_4 + flux_5 + flux_6)
+    top_flux = abs(flux_2)
 
-    # print(f"Total flux: {total_flux:.2e} H/s/m")
-    # print(f"Average concentration: {average_conc:.2e} H/m3")
-    # print(f"k: {k:.2e} m/s")
+    average_conc = my_data["Average_solute_volume_1"]
 
-    return wall_flux, top_flux, np.array(total_volume.data), derived_quantities.t
+    total_surface = 2 * np.pi * f.assemble(rthetaz[0] * model_2d.mesh.ds)
+    print(f"Total surface: {total_surface:.2e} m2")
+    k = total_flux / (total_surface * average_conc)
+    k_top = top_flux / (2 * np.pi * f.assemble(rthetaz[0] * model_2d.mesh.ds))
+
+    print(f"Total flux: {total_flux:.2e} H/s/m")
+    print(f"Average concentration: {average_conc:.2e} H/m3")
+    print(f"k: {k:.2e} m/s")
+
+    return k_top, average_conc, total_flux
