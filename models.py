@@ -156,7 +156,7 @@ def load_xdmf_mesh(folder_name):
     upper_left_surface.mark(surface_markers, upper_left_id)
     left_top_surface.mark(surface_markers, left_top_id)
 
-    f.plot(surface_markers, title="Surface Markers")
+    f.plot(mesh_fenics)
     correspondance_dict = {
         "left": left_id,
         "top": top_id,
