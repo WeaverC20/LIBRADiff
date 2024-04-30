@@ -12,5 +12,6 @@ dependencies:
   - mshr
   - ipykernel  # needed to run jupyter notebooks
   - scipy
+  - meshio
   - pip:
     - festim>1.1
