@@ -95,7 +95,6 @@ def load_xdmf_mesh(folder_name):
     # my_model.mesh = F.MeshFromXDMF(volume_file=f"{folder_name}mesh_domains.xdmf", boundary_file=f"{folder_name}mesh_boundaries.xdmf")
     # mesh_fenics = my_model.mesh
 
-
     volume_file = f"{folder_name}mesh_domains.xdmf"
     boundary_file = f"{folder_name}mesh_boundaries.xdmf"
 
@@ -115,8 +114,6 @@ def load_xdmf_mesh(folder_name):
 
     print("Succesfully load mesh with " + str(len(volume_markers)) + " cells")
     volume_markers.set_all(1)
-
-
 
     left_surface_str = f"on_boundary && near(x[0], {x_off}, tol)"
     left_surface = f.CompiledSubDomain(left_surface_str, tol=1e-14)
@@ -637,6 +634,7 @@ def t_transport_sim(
 
 #     return k_top, average_conc, total_flux
 
+
 def transient_t_transport_sim(
     temperature_field,
     mesh_fenics,
@@ -691,7 +689,7 @@ def transient_t_transport_sim(
     salt_volume = 2 * f.pi * f.assemble(rthetaz[0] * f.dx())
     print(f"Salt volume : {salt_volume} m3, {salt_volume * 1e6} mL")
 
-    measured_tritium_source = 3.65e5  # T/s
+    measured_tritium_source = 1.83e5  # T/s
 
     twelve_hr = 12 * 3600
 
@@ -725,7 +723,7 @@ def transient_t_transport_sim(
     model_2d.dt = F.Stepsize(
         initial_value=100,
         stepsize_change_ratio=1.05,
-        # milestones=[twelve_hr, 2 * twelve_hr, 3 * twelve_hr],
+        milestones=[twelve_hr, 2 * twelve_hr, 3 * twelve_hr],
     )
 
     # simulation parameters and running model
