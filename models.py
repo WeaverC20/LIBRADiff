@@ -725,7 +725,7 @@ def transient_t_transport_sim(
     model_2d.dt = F.Stepsize(
         initial_value=100,
         stepsize_change_ratio=1.05,
-        # milestones=[twelve_hr, 2 * twelve_hr, 3 * twelve_hr],
+        milestones=[twelve_hr, 2 * twelve_hr, 3 * twelve_hr],
     )
 
     # simulation parameters and running model
@@ -810,4 +810,4 @@ def transient_t_transport_sim(
     # print(f"Average concentration: {average_conc:.2e} H/m3")
     # print(f"k: {k:.2e} m/s")
 
-    return wall_flux, top_flux, np.array(total_volume.data), derived_quantities.t
+    return top_flux, wall_flux, np.array(total_volume.data), derived_quantities.t
