@@ -14,3 +14,4 @@ dependencies:
   - scipy
   - pip:
     - festim>1.1
+    - h_transport_materials
