@@ -675,6 +675,7 @@ def transient_t_transport_sim(
         mesh=mesh_fenics,  # TODO we should be able to get the mesh from the temperature field
         volume_markers=volume_markers,
         surface_markers=surface_markers,
+        type="cylindrical",
     )
 
     temperature_file = "temperature.xdmf"
